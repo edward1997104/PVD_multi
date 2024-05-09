@@ -346,8 +346,8 @@ class GaussianDiffusion:
         # Usually our model outputs epsilon, but we re-derive it
         # in case we used x_start or x_prev prediction.
         eps = self._predict_eps_from_xstart(x, t, x_recon)
-        alpha_bar = self._extract(self.alphas_cumprod, t, x.shape)
-        alpha_bar_prev = self._extract(self.alphas_cumprod_prev, t, x.shape)
+        alpha_bar = self._extract(self.alphas_cumprod.to(t.device), t, x.shape)
+        alpha_bar_prev = self._extract(self.alphas_cumprod_prev.to(t.device), t, x.shape)
         sigma = (
                 eta
                 * torch.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
