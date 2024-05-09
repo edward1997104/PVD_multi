@@ -199,9 +199,9 @@ class GaussianDiffusion:
 
     def _predict_eps_from_xstart(self, x_t, t, pred_xstart):
         return (
-            self._extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
+            self._extract(self.sqrt_recip_alphas_cumprod.to(x_t.device), t, x_t.shape) * x_t
             - pred_xstart
-        ) / self._extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape)
+        ) / self._extract(self.sqrt_recipm1_alphas_cumprod.to(x_t.device), t, x_t.shape)
 
     ''' samples '''
 
