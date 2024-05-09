@@ -216,6 +216,81 @@ class GaussianDiffusion:
         assert sample.shape == pred_xstart.shape
         return (sample, pred_xstart) if return_pred_xstart else sample
 
+    def ddim_sample_loop(
+        self,
+        model,
+        shape,
+        noise=None,
+        clip_denoised=False,
+        denoised_fn=None,
+        device=None,
+        progress=False,
+        eta=0.0,
+    ):
+        """
+        Generate samples from the model using DDIM.
+        Same usage as p_sample_loop().
+        """
+        final = None
+        for sample in self.ddim_sample_loop_progressive(
+            model,
+            shape,
+            noise=noise,
+            clip_denoised=clip_denoised,
+            denoised_fn=denoised_fn,
+            device=device,
+            progress=progress,
+            eta=eta,
+        ):
+            final = sample
+        return final["sample"]
+
+    def ddim_sample_loop_progressive(
+            self,
+            model,
+            shape,
+            noise=None,
+            clip_denoised=False,
+            denoised_fn=None,
+            device=None,
+            progress=False,
+            eta=0.0,
+    ):
+        """
+        Use DDIM to sample from the model and yield intermediate samples from
+        each timestep of DDIM.
+        Same usage as p_sample_loop_progressive().
+        """
+        if device is None:
+            device = next(model.parameters()).device
+        assert isinstance(shape, (tuple, list))
+        if noise is not None:
+            img = noise
+        else:
+            img = torch.randn(*shape, device=device)
+
+        indices = list(range(self.num_timesteps))[::-1]
+
+
+        if progress:
+            # Lazy import so that we don't depend on tqdm.
+            from tqdm.auto import tqdm
+
+            indices = tqdm(indices)
+
+        for i in indices:
+            t = torch.tensor([i] * shape[0], device=device)
+            with torch.no_grad():
+                out = self.ddim_sample(
+                    model,
+                    img,
+                    t,
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    eta=eta,
+                )
+                yield out
+                img = out["sample"]
 
     def p_sample_loop(self, denoise_fn, shape, device,
                       noise_fn=torch.randn, constrain_fn=lambda x, t:x,
@@ -241,6 +316,48 @@ class GaussianDiffusion:
 
         assert img_t.shape == shape
         return img_t
+
+    def ddim_sample(
+            self,
+            model,
+            x,
+            t,
+            clip_denoised=True,
+            denoised_fn=None,
+            eta=0.0,
+    ):
+        """
+        Sample x_{t-1} from the model using DDIM.
+        Same usage as p_sample().
+        """
+        model_mean, model_variance, model_log_variance, x_recon = self.p_mean_variance(
+            model,
+            x,
+            t,
+            clip_denoised=clip_denoised,
+            return_pred_xstart=True,
+        )
+        # Usually our model outputs epsilon, but we re-derive it
+        # in case we used x_start or x_prev prediction.
+        eps = self._predict_eps_from_xstart(x, t, x_recon)
+        alpha_bar = self._extract(self.alphas_cumprod, t, x.shape)
+        alpha_bar_prev = self._extract(self.alphas_cumprod_prev, t, x.shape)
+        sigma = (
+                eta
+                * torch.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
+                * torch.sqrt(1 - alpha_bar / alpha_bar_prev)
+        )
+        # Equation 12.
+        noise = torch.randn_like(x)
+        mean_pred = (
+                x_recon * torch.sqrt(alpha_bar_prev)
+                + torch.sqrt(1 - alpha_bar_prev - sigma ** 2) * eps
+        )
+        nonzero_mask = (
+            (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
+        )  # no noise when t == 0
+        sample = mean_pred + nonzero_mask * sigma * noise
+        return {"sample": sample, "pred_xstart": x_recon}
 
     def reconstruct(self, x0, t, denoise_fn, noise_fn=torch.randn, constrain_fn=lambda x, t:x):
 
@@ -383,7 +500,12 @@ class Model(nn.Module):
     def gen_samples(self, shape, device, noise_fn=torch.randn, constrain_fn=lambda x, t:x,
                     clip_denoised=False, max_timestep=None,
                     keep_running=False):
-        return self.diffusion.p_sample_loop(self._denoise, shape=shape, device=device, noise_fn=noise_fn,
+
+        if opt.use_ddim:
+            return self.diffusion.ddim_sample_loop(self._denoise, shape=shape, device=device, noise_fn=noise_fn,
+                                                   clip_denoised=clip_denoised)
+        else:
+            return self.diffusion.p_sample_loop(self._denoise, shape=shape, device=device, noise_fn=noise_fn,
                                             constrain_fn=constrain_fn,
                                             clip_denoised=clip_denoised, max_timestep=max_timestep,
                                             keep_running=keep_running)
@@ -677,6 +799,7 @@ def parse_args():
 
     parser.add_argument('--generate',default=True)
     parser.add_argument('--eval_gen', default=False)
+    parser.add_argument('--use_ddim', default=False)
 
     parser.add_argument('--nc', default=3)
     parser.add_argument('--npoints', default=2048)
