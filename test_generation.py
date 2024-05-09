@@ -25,7 +25,7 @@ class _WrappedModel:
     def __init__(self, model, timestep_map, rescale_timesteps, original_num_steps):
         self.model = model
         self.timestep_map = timestep_map
-        self.rescale_timesteps = rescale_timesteps
+        self.rescale_timesteps = False
         self.original_num_steps = original_num_steps
 
     def __call__(self, x, ts, **kwargs):
@@ -592,7 +592,7 @@ class SpacedDiffusion(GaussianDiffusion):
         if isinstance(model, _WrappedModel):
             return model
         return _WrappedModel(
-            model, self.timestep_map, self.rescale_timesteps, self.original_num_steps
+            model, self.timestep_map, False, self.original_num_steps
         )
 
     def _scale_timesteps(self, t):
