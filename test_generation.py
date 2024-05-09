@@ -469,8 +469,8 @@ def generate(model, opt):
             samples.append(gen)
             ref.append(x)
 
-            visualize_pointcloud_batch(os.path.join(str(Path(opt.eval_path).parent), 'x.png'), gen[:64], None,
-                                       None, None)
+            # visualize_pointcloud_batch(os.path.join(str(Path(opt.eval_path).parent), 'x.png'), gen[:64], None,
+            #                            None, None)
 
         samples = torch.cat(samples, dim=0)
         ref = torch.cat(ref, dim=0)
@@ -478,9 +478,32 @@ def generate(model, opt):
         torch.save(samples, opt.eval_path)
 
 
+        os.makedirs(opt.saving_folder, exist_ok=True)
+        for i in range(samples.size(0)):
+            save_ply_file(samples[i].numpy(), os.path.join(opt.saving_folder, f'{i}.ply'))
+
+
 
     return ref
 
+
+def save_ply_file(points, filename):
+    """
+    Save a point cloud to a PLY file.
+
+    Parameters:
+    - filename (str): The output PLY file name.
+    - points (numpy.ndarray): A Nx3 NumPy array representing the point cloud.
+
+    Returns:
+    - None
+    """
+    header = "ply\nformat ascii 1.0\nelement vertex {}\nproperty float x\nproperty float y\nproperty float z\nend_header".format(len(points))
+
+    with open(filename, 'w') as ply_file:
+        ply_file.write(header + '\n')
+        for point in points:
+            ply_file.write('{} {} {}\n'.format(point[0], point[1], point[2]))
 
 def main(opt):
 
@@ -541,7 +564,7 @@ def parse_args():
     parser.add_argument('--niter', type=int, default=10000, help='number of epochs to train for')
 
     parser.add_argument('--generate',default=True)
-    parser.add_argument('--eval_gen', default=True)
+    parser.add_argument('--eval_gen', default=False)
 
     parser.add_argument('--nc', default=3)
     parser.add_argument('--npoints', default=2048)
@@ -566,6 +589,7 @@ def parse_args():
 
     parser.add_argument('--eval_path',
                         default='')
+    parser.add_argument('--saving_folder', default='./gt')
 
     parser.add_argument('--manualSeed', default=42, type=int, help='random seed')
 
