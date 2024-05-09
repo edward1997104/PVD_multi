@@ -502,8 +502,8 @@ class Model(nn.Module):
                     keep_running=False):
 
         if opt.use_ddim:
-            return self.diffusion.ddim_sample_loop(self._denoise, shape=shape, device=device, noise_fn=noise_fn,
-                                                   clip_denoised=clip_denoised)
+            return self.diffusion.ddim_sample_loop(self._denoise, shape=shape, device=device, noise=None,
+                                                   clip_denoised=clip_denoised, progress=True)
         else:
             return self.diffusion.p_sample_loop(self._denoise, shape=shape, device=device, noise_fn=noise_fn,
                                             constrain_fn=constrain_fn,
