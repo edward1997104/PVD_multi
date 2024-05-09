@@ -760,7 +760,7 @@ def main(opt):
 
     outf_syn, = setup_output_subdirs(output_dir, 'syn')
 
-    betas = get_betas(opt.schedule_type, opt.beta_start, opt.beta_end, opt.time_num)
+    betas = get_betas(opt.schedule_type, opt.beta_start, opt.beta_end, 1000)
     model = Model(opt, betas, opt.loss_type, opt.model_mean_type, opt.model_var_type)
 
     if opt.cuda:
