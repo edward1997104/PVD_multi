@@ -339,7 +339,7 @@ def space_timesteps(num_timesteps, section_counts):
 class Model(nn.Module):
     def __init__(self, args, betas, loss_type: str, model_mean_type: str, model_var_type:str):
         super(Model, self).__init__()
-        self.diffusion = SpacedDiffusion(use_timesteps=(1000, [opt.time_num]), betas, loss_type, model_mean_type, model_var_type)
+        self.diffusion = SpacedDiffusion(betas, loss_type, model_mean_type, model_var_type, use_timesteps= space_timesteps(1000, [opt.time_num]))
 
         self.model = PVCNN2(num_classes=args.nc, embed_dim=args.embed_dim, use_att=args.attention,
                             dropout=args.dropout, extra_feature_channels=0)
