@@ -666,7 +666,7 @@ def generate(model, opt):
         torch.save(samples, opt.eval_path)
 
 
-        final_saving_folder = os.path.join(opt.saving_folder, str(opt.time_num))
+        final_saving_folder = os.path.join(opt.saving_folder, str(opt.time_num) + '_ddim' if opt.use_ddim else str(opt.time_num))
         os.makedirs(final_saving_folder, exist_ok=True)
 
         for i in range(samples.size(0)):
