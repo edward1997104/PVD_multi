@@ -478,9 +478,11 @@ def generate(model, opt):
         torch.save(samples, opt.eval_path)
 
 
-        os.makedirs(opt.saving_folder, exist_ok=True)
+        final_saving_folder = os.path.join(opt.saving_folder, opt.time_num)
+        os.makedirs(final_saving_folder, exist_ok=True)
+
         for i in range(samples.size(0)):
-            save_ply_file(samples[i].numpy(), os.path.join(opt.saving_folder, f'{i}.ply'))
+            save_ply_file(samples[i].numpy(), os.path.join(final_saving_folder, f'{i}.ply'))
 
 
 
