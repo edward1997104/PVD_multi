@@ -1,7 +1,7 @@
 import torch
 from pprint import pprint
-from metrics.evaluation_metrics import jsd_between_point_cloud_sets as JSD
-from metrics.evaluation_metrics import compute_all_metrics, EMD_CD
+# from metrics.evaluation_metrics import jsd_between_point_cloud_sets as JSD
+# from metrics.evaluation_metrics import compute_all_metrics, EMD_CD
 
 import torch.nn as nn
 import torch.utils.data
