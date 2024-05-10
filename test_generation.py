@@ -677,6 +677,7 @@ def generate(model, opt):
 
         ### save samples
         final_saving_gt_folder = os.path.join(opt.saving_folder, 'gt_ddim' if opt.use_ddim else 'gt')
+        os.makedirs(final_saving_gt_folder, exist_ok=True)
 
         for i in range(samples.size(0)):
             save_ply_file(samples[i].cpu().numpy(), os.path.join(final_saving_folder, f'{i}.ply'))
